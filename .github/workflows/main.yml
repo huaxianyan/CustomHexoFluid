@@ -18,6 +18,7 @@ jobs:
       run: |
         VERSION=$(curl -s https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
         echo "Latest release version: $VERSION"
+        VERSION_NUMBER=$(echo $VERSION | grep -oE '[0-9.]+')
         echo "::set-output name=version::$VERSION"
 
     - name: Compare versions
@@ -30,9 +31,10 @@ jobs:
           echo "Using release version: $VERSION"
           mkdir update_tmp
           cd update_tmp
-          curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/v${VERSION}.tar.gz  # 修正链接
-          tar -xzf ${VERSION}.tar.gz
-          cp -r hexo-theme-fluid-${VERSION}/scripts hexo-theme-fluid-${VERSION}/source .
+          curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${VERSION}.tar.gz
+          tar -xzf hexo-theme-fluid-${VERSION_NUMBER}.tar.gz
+          cd hexo-theme-fluid-${VERSION_NUMBER}
+          cp -r /scripts /source .
           zip -r update.zip .
           echo "::set-output name=update_path::$(pwd)/update.zip"
         else
