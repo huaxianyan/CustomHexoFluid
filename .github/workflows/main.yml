@@ -33,7 +33,11 @@ jobs:
           echo "Versions are the same. No update needed."
         fi
 
-    - name: Upload Release
-      uses: ncipollo/release-action@v1
+    - name: Deploy update
+      if: success()
+      uses: crazy-max/ghaction-github-pages@v2
       with:
-        artifacts: "update.zip"
+        commit_message: Update app
+        build_dir: ./updata.zip
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
