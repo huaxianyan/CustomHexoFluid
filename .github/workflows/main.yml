@@ -30,7 +30,7 @@ jobs:
           echo "Using release version: $VERSION"
           mkdir update_tmp
           cd update_tmp
-          curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/${VERSION}.tar.gz
+          curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${VERSION}.tar.gz  # 修正链接
           tar -xzf ${VERSION}.tar.gz
           cp -r hexo-theme-fluid-${VERSION}/scripts hexo-theme-fluid-${VERSION}/source .
           zip -r update.zip .
