@@ -33,8 +33,8 @@ jobs:
           echo "Versions are the same. No update needed."
         fi
 
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ncipollo/release-action@v1
-        with:
-          artifacts: "update.zip"
+    - name: Upload Release
+      uses: actions/upload-artifact@v2
+      with:
+        name: update
+        path: update_tmp/update.zip
