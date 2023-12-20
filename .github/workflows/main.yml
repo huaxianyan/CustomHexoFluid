@@ -34,7 +34,6 @@ jobs:
         fi
 
     - name: Upload Release
-      uses: actions/upload-artifact@v2
+      uses: ncipollo/release-action@v1
       with:
-        name: update
-        path: update_tmp/update.zip
+        artifacts: "update.zip"
