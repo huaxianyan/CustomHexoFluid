@@ -43,4 +43,7 @@ jobs:
         else
           echo "Versions are the same. No update needed."
         fi
-
+    - name: release
+      uses: ncipollo/release-action@v1
+      with:
+          artifacts: "/release/"
