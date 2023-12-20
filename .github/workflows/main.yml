@@ -30,16 +30,17 @@ jobs:
           cp -r ../../scripts ../../source .
           mkdir ../../release
           zip -r "../../release/hexo-theme-fluid-${VERSION_NUMBER}.zip" .
-          echo "success"
+          git config user.name "${{ secrets.GIT_USER_NAME }}"
+          git config user.email "${{ secrets.GIT_USER_EMAIL }}"
+          cd ..
+          cd ..
+          echo ${VERSION} > version
+          git add version
+          git commit -m "update"
+          git tag -a ${VERSION} -m "update"
+          git push
+          git push --tags
         else
           echo "Versions are the same. No update needed."
         fi
 
-    - name: Deploy update
-      if: success()
-      uses: crazy-max/ghaction-github-pages@v2
-      with:
-        commit_message: Update app
-        build_dir: ./release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
