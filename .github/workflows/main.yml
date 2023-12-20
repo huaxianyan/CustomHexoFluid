@@ -19,8 +19,17 @@ jobs:
         VERSION=$(curl -s https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
         echo "Latest release version: $VERSION"
         VERSION_NUMBER=$(echo $VERSION | grep -oE '[0-9.]+')
-        echo "::set-output name=version::$VERSION"
-        echo $VERSION
-        echo $VERSION_NUMBER
-
-
+        LOCAL_VERSION=$(cat version)
+        if [ "$LOCAL_VERSION" != "${VERSION}" ]; then
+          echo "Versions are different. Updating..."
+          mkdir update_tmp
+          cd update_tmp
+          curl -LJO "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${VERSION}.tar.gz"
+          tar -xzf "hexo-theme-fluid-${VERSION_NUMBER}.tar.gz"
+          cd "hexo-theme-fluid-${VERSION_NUMBER}'
+          cp -r /scripts /source .
+          zip -r update.zip .
+          echo "success"
+        else
+          echo "Versions are the same. No update needed."
+        fi
