@@ -47,5 +47,5 @@ jobs:
     - name: release
       uses: ncipollo/release-action@v1
       with:
-          artifacts: "./release/*"
+          artifacts: "release/*.zip"
           tag: v1.9.7
