@@ -31,7 +31,7 @@ jobs:
           echo "Using release version: $VERSION"
           mkdir update_tmp
           cd update_tmp
-          curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${VERSION}.tar.gz
+          curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/v${VERSION_NUMBER}.tar.gz
           tar -xzf hexo-theme-fluid-${VERSION_NUMBER}.tar.gz
           cd hexo-theme-fluid-${VERSION_NUMBER}
           cp -r /scripts /source .
