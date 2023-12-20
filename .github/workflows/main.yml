@@ -38,16 +38,16 @@ jobs:
           git add version
           git commit -m "update"
           git push
-          echo "::set-output name=version_tag::${VERSION}"
+          echo "VERSION_TAG=${VERSION}" >> $GITHUB_ENV
         else
           echo "Versions are the same. No update needed."
           exit 0
         fi
         
     - name: release
-      if: ${{ needs.update-release.outputs.version_tag != '' }}
+      if: env.VERSION_TAG
       uses: ncipollo/release-action@v1
       with:
           artifacts: "./release/*"
           allowUpdates: true
-          tag: ${{ needs.update-release.outputs.version_tag }}
+          tag: ${{ env.VERSION_TAG }}
