@@ -40,8 +40,10 @@ jobs:
           git tag -a ${VERSION} -m "update"
           git push
           git push --tags
+          echo "VERSION_PASS=${VERSION}" >> $GITHUB_ENV
         else
           echo "Versions are the same. No update needed."
+          exit 0
         fi
         
     - name: release
@@ -49,4 +51,4 @@ jobs:
       with:
           artifacts: "./release/*"
           allowUpdates: true
-          tag: v1.9.7
+          tag: ${VERSION_PASS}
