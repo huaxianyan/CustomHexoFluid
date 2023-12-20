@@ -36,6 +36,7 @@ jobs:
           cd ..
           echo ${VERSION} > version
           git add version
+          git add -a
           git commit -m "update"
           git tag -a ${VERSION} -m "update"
           git push
