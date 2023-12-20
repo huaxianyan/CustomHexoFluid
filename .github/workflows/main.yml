@@ -20,10 +20,6 @@ jobs:
         echo "Latest release version: $VERSION"
         VERSION_NUMBER=$(echo $VERSION | grep -oE '[0-9.]+')
         echo "::set-output name=version::$VERSION"
-
-    - name: Compare versions
-      id: compare_versions
-      run: |
         echo $VERSION
         echo $VERSION_NUMBER
 
