@@ -28,8 +28,6 @@ jobs:
           cd "hexo-theme-fluid-${VERSION_NUMBER}"
           cp -r ../../scripts ../../source .
           zip -r ../../update.zip .
-          cd ..
-          cd ..
           echo "success"
         else
           echo "Versions are the same. No update needed."
@@ -40,6 +38,6 @@ jobs:
       uses: crazy-max/ghaction-github-pages@v2
       with:
         commit_message: Update app
-        build_dir: ./update.zip
+        build_dir: ../update.zip
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
