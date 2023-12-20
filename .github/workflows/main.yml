@@ -47,6 +47,6 @@ jobs:
     - name: release
       uses: ncipollo/release-action@v1
       with:
-          artifacts: "./release/*.zip,./version"
+          artifacts: "./release/hexo-theme-fluid-1.9.7.zip"
           allowUpdates: true
           tag: v1.9.7
