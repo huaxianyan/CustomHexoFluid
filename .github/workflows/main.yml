@@ -48,6 +48,6 @@ jobs:
     - name: release
       uses: ncipollo/release-action@v1
       with:
-          artifacts: "./"
+          artifacts: "./release/*"
           allowUpdates: true
           tag: v1.9.7
