@@ -13,11 +13,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Get latest release version
+    - name: do
       id: get_release
       run: |
         VERSION=$(curl -s https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
-        echo "Latest release version: $VERSION"
         VERSION_NUMBER=$(echo $VERSION | grep -oE '[0-9.]+')
         LOCAL_VERSION=$(cat version)
         if [ "$LOCAL_VERSION" != "${VERSION}" ]; then
@@ -33,3 +32,9 @@ jobs:
         else
           echo "Versions are the same. No update needed."
         fi
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ncipollo/release-action@v1
+        with:
+          artifacts: "update.zip"
