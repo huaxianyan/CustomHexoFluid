@@ -32,7 +32,7 @@ jobs:
           cd update_tmp
           curl -LJO https://github.com/fluid-dev/hexo-theme-fluid/archive/${VERSION}.tar.gz
           tar -xzf ${VERSION}.tar.gz
-          cp -r ../scripts ../source hexo-theme-fluid-${VERSION}
+          cp -r hexo-theme-fluid-${VERSION}/scripts hexo-theme-fluid-${VERSION}/source .
           zip -r update.zip .
           echo "::set-output name=update_path::$(pwd)/update.zip"
         else
