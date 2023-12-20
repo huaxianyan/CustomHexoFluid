@@ -27,7 +27,7 @@ jobs:
           curl -LJO "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${VERSION}.tar.gz"
           tar -xzf "hexo-theme-fluid-${VERSION_NUMBER}.tar.gz"
           cd "hexo-theme-fluid-${VERSION_NUMBER}"
-          cp -r /scripts /source .
+          cp -r ../../scripts ../../source .
           zip -r update.zip .
           echo "success"
         else
