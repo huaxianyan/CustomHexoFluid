@@ -37,18 +37,17 @@ jobs:
           echo ${VERSION} > version
           git add version
           git commit -m "update"
-          git tag -a ${VERSION} -m "update"
           git push
-          git push --tags
-          echo "VERSION_PASS=${VERSION}" >> $GITHUB_ENV
+          echo "::set-output name=version_tag::${VERSION}"
         else
           echo "Versions are the same. No update needed."
           exit 0
         fi
         
     - name: release
+      if: ${{ needs.update-release.outputs.version_tag != '' }}
       uses: ncipollo/release-action@v1
       with:
           artifacts: "./release/*"
           allowUpdates: true
-          tag: ${VERSION_PASS}
+          tag: ${{ needs.update-release.outputs.version_tag }}
