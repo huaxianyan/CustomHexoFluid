@@ -28,6 +28,8 @@ jobs:
           cd "hexo-theme-fluid-${VERSION_NUMBER}"
           cp -r ../../scripts ../../source .
           zip -r ../../update.zip .
+          cd ..
+          cd ..
           echo "success"
         else
           echo "Versions are the same. No update needed."
