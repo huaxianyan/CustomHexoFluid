@@ -24,35 +24,7 @@ jobs:
     - name: Compare versions
       id: compare_versions
       run: |
-        LOCAL_VERSION=$(cat version)
-        if [ "$LOCAL_VERSION" != "${{ steps.get_release.outputs.version }}" ]; then
-          echo "Versions are different. Updating..."
-          VERSION=${{ steps.get_release.outputs.version }}
-          echo "Using release version: $VERSION"
-          mkdir update_tmp
-          cd update_tmp
-          curl -LJO 'https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/v${VERSION_NUMBER}.tar.gz'
-          tar -xzf 'hexo-theme-fluid-${VERSION_NUMBER}.tar.gz'
-          cd 'hexo-theme-fluid-${VERSION_NUMBER}'
-          cp -r /scripts /source .
-          zip -r update.zip .
-          echo "::set-output name=update_path::$(pwd)/update.zip"
-        else
-          echo "Versions are the same. No update needed."
-        fi
+        echo $VERSION
+        echo $VERSION_NUMBER
 
-    - name: Create new release
-      id: create_release
-      if: steps.compare_versions.outputs.update_path || github.event_name == 'workflow_dispatch'
-      run: |
-        RELEASE_ID=$(curl -s -X POST \
-          -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-          -H "Content-Type: application/zip" \
-          --data-binary "@${{ steps.compare_versions.outputs.update_path }}" \
-          "https://api.github.com/repos/huaxianyan/custom_hexo_fluid/releases?tag_name=${{ steps.get_release.outputs.version }}&name=${{ steps.get_release.outputs.version }}&draft=false" \
-          | jq -r '.id')
-        echo "Created release with ID $RELEASE_ID"
 
-    - name: Update local version file
-      if: steps.compare_versions.outputs.update_path || github.event_name == 'workflow_dispatch'
-      run: echo "${{ steps.get_release.outputs.version }}" > version
