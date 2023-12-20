@@ -27,8 +27,8 @@ jobs:
           tar -xzf "hexo-theme-fluid-${VERSION_NUMBER}.tar.gz"
           cd "hexo-theme-fluid-${VERSION_NUMBER}"
           cp -r ../../scripts ../../source .
-          mkdir ../release
-          zip -r "../release/hexo-theme-fluid-${VERSION_NUMBER}.zip" .
+          mkdir ../../release
+          zip -r "../../release/hexo-theme-fluid-${VERSION_NUMBER}.zip" .
           echo "success"
         else
           echo "Versions are the same. No update needed."
