@@ -48,7 +48,7 @@
     const style = elem.attr('style')
     elem.replaceWith(`<div class="${className}" style="${style}">
       <img class="img-blur" data-src="${src}" loading="lazy">
-      <img class="blur-loading" src="${mini}" data-fancybox-ignore="true">
+      <img class="blur-loading" src="${mini}">
     </div>`)
   })
   jQuery('.img-blur').on('load', function() {
