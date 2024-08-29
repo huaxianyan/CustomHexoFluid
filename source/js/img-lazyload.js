@@ -18,6 +18,7 @@
     margin: 1.5rem auto;
     overflow: hidden;
     box-shadow: 0 5px 11px 0 rgb(0 0 0 / 18%), 0 4px 15px 0 rgb(0 0 0 / 15%);
+    border-radius： 4px;
   }
   .${className} .img-blur {
     filter: blur(32px);
