@@ -40,6 +40,15 @@ module.exports = (hexo) => {
 const imageSet = new Set();
 const imageMap = new Map();
 
+function getImagePath(image) {
+  if (/^https?:\/\/[^\/]+/.test(image)) {
+    const str = image.replace(/^https?:\/\/[^\/]+/, '')
+    const result =  str.startsWith('/images/') ? str : '/images' + str
+    return result
+  }
+  return image
+}
+
 const lazyImages = (htmlContent, loadingImage) => {
   return htmlContent.replace(/<img[^>]+?src=(".*?")[^>]*?>/gims, (str, p1) => {
     if (/loading=/i.test(str)) {
@@ -49,7 +58,8 @@ const lazyImages = (htmlContent, loadingImage) => {
     if (/width="[^"]+"/.test(str)) {
       widthExist = str.match(/width="([^"]+)"/)[1]
     }
-    const info = imageMap.get(p1.replace(/"/g, ''))
+    const imagePath = getImagePath(p1.replace(/"/g, ''))
+    const info = imageMap.get(imagePath)
     const thumb = p1.replace(/"/g, '').replace(/\.[^.]+$/, '_proc.jpg')
     if (info) {
       let style = `aspect-ratio: ${info.width} / ${info.height}`
@@ -78,13 +88,7 @@ const collectImages = (htmlContent) => {
   const images = htmlContent.match(/(?<=<img[^>]+?src=").*?(?="[^>]*?>)/gims)
   if (images) {
     images.forEach(image => {
-      if (/^https?:\/\/[^\/]+/.test(image)) {
-        const str = image.replace(/^https?:\/\/[^\/]+/, '')
-        const result =  str.startsWith('/images/') ? str : '/images' + str
-        imageSet.add(result)
-      } else {
-        imageSet.add(image)
-      }
+      imageSet.add(getImagePath(image))
     })
   }
 }
