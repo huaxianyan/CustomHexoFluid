@@ -77,7 +77,10 @@ const lazyComments = (htmlContent) => {
 const collectImages = (htmlContent) => {
   const images = htmlContent.match(/(?<=<img[^>]+?src=").*?(?="[^>]*?>)/gims)
   if (images) {
-    images.forEach(image => imageSet.add(image))
+    images.forEach(image => {
+      const result = '/images' + image.replace(/https?:\/\/[^\/]+/, '')
+      imageSet.add(result)
+    })
   }
 }
 
