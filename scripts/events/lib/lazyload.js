@@ -78,8 +78,13 @@ const collectImages = (htmlContent) => {
   const images = htmlContent.match(/(?<=<img[^>]+?src=").*?(?="[^>]*?>)/gims)
   if (images) {
     images.forEach(image => {
-      const result = '/images' + image.replace(/https?:\/\/[^\/]+/, '')
-      imageSet.add(result)
+      if (/^https?:\/\/[^\/]+/.test(image)) {
+        const str = image.replace(/^https?:\/\/[^\/]+/, '')
+        const result =  str.startsWith('/images/') ? str : '/images' + str
+        imageSet.add(result)
+      } else {
+        imageSet.add(image)
+      }
     })
   }
 }
