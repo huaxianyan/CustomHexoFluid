@@ -3,75 +3,87 @@ name: Update Release
 on:
   workflow_dispatch:
   schedule:
-    - cron: '7 7 * * *'
+    - cron: '7 7 * * *' # 每天北京时间 15:07 运行
 
 jobs:
   update-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 必须赋予写权限才能推送到仓库和发布 Release
-    
+      contents: write  # 必须开启，用于推送代码和创建 Release
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          # 使用默认的 GITHUB_TOKEN，无需额外配置 Secret
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check version and Rebuild
         id: check_step
         run: |
-          # 1. 获取远程最新版本
+          # 1. 获取上游最新 Tag
           LATEST_TAG=$(curl -s https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
           
-          # 2. 读取本地版本
-          if [ -f version ]; then
-            LOCAL_TAG=$(cat version)
-          else
-            LOCAL_TAG=""
-          fi
+          # 2. 读取本地记录的版本
+          [ -f version ] && LOCAL_TAG=$(cat version) || LOCAL_TAG=""
 
-          if [ "$LATEST_TAG" = "$LOCAL_TAG" ]; then
-            echo "No update needed."
-            echo "NEED_UPDATE=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "Updating to $LATEST_TAG"
-          echo "NEED_UPDATE=true" >> $GITHUB_OUTPUT
-          echo "VERSION_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
-
-          # 3. 下载并解压 (使用临时目录避免污染)
-          curl -L -o theme.tar.gz "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${LATEST_TAG}.tar.gz"
-          mkdir -p build_dir
-          tar -xzf theme.tar.gz -C build_dir --strip-components=1
-
-          # 4. 覆盖自定义内容并打包
-          # 假设你的 scripts 和 source 在当前仓库根目录
-          cp -r scripts source build_dir/
-          
-          mkdir -p dist
-          cd build_dir
-          zip -r "../dist/hexo-theme-fluid-${LATEST_TAG}.zip" .
-          cd ..
-
-          # 5. 更新本地版本文件并提交
-          echo "$LATEST_TAG" > version
+          # 配置 Git 信息 (统一使用 GitHub Actions Bot)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add version
-          git commit -m "chore: update theme to $LATEST_TAG"
-          git push
 
-      - name: Create Release
+          # 3. 核心判断逻辑
+          if [ "$LATEST_TAG" != "$LOCAL_TAG" ]; then
+            echo "NEED_UPDATE=true" >> $GITHUB_OUTPUT
+            echo "VERSION_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
+            
+            echo "New version found: $LATEST_TAG. Processing..."
+            
+            # 下载并解压，--strip-components=1 直接去掉压缩包内的一级文件夹
+            curl -L -o theme.tar.gz "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${LATEST_TAG}.tar.gz"
+            mkdir -p temp_build
+            tar -xzf theme.tar.gz -C temp_build --strip-components=1
+            
+            # 将你仓库里的自定义 scripts 和 source 覆盖进去
+            cp -r scripts source temp_build/
+            
+            # 打包
+            mkdir -p release_dist
+            cd temp_build
+            zip -r "../release_dist/hexo-theme-fluid-${LATEST_TAG}.zip" .
+            cd ..
+            
+            # 更新本地版本文件并提交仓库
+            echo "$LATEST_TAG" > version
+            git add version
+            git commit -m "chore: update to $LATEST_TAG"
+            git push
+          else
+            echo "NEED_UPDATE=false" >> $GITHUB_OUTPUT
+            echo "Versions are identical ($LATEST_TAG)."
+            
+            # --- 自动保活逻辑 ---
+            # 如果 50 天没有代码提交，GitHub 会停掉定时任务。
+            # 这里检查最后一次提交时间，如果超过 30 天，则触发一次空的 commit 保活。
+            LAST_COMMIT_DATE=$(git log -1 --format=%ct)
+            NOW=$(date +%s)
+            DIFF=$(( (NOW - LAST_COMMIT_DATE) / 86400 ))
+            
+            if [ $DIFF -gt 30 ]; then
+              echo "Workflow inactive for $DIFF days. Triggering keep-alive commit."
+              date > keepalive.txt
+              git add keepalive.txt
+              git commit -m "chore: keep-alive heartbeat"
+              git push
+            fi
+          fi
+
+      - name: Create GitHub Release
         if: steps.check_step.outputs.NEED_UPDATE == 'true'
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "./dist/*"
+          artifacts: "./release_dist/*"
           allowUpdates: true
           tag: ${{ steps.check_step.outputs.VERSION_TAG }}
-          body: "Auto-generated release for version ${{ steps.check_step.outputs.VERSION_TAG }}"
+          name: "Release ${{ steps.check_step.outputs.VERSION_TAG }}"
+          body: "Auto-packaged hexo-theme-fluid with custom scripts and source."
           token: ${{ secrets.GITHUB_TOKEN }}
-
-      # 自动保活步骤：如果 50 天没更新，自动触发一个 commit 
-      - name: Keepalive Workflow
-        uses: gautamkrishnar/keepalive-workflow@v2
