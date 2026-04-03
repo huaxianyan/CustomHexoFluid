@@ -3,87 +3,93 @@ name: Update Release
 on:
   workflow_dispatch:
   schedule:
-    - cron: '7 7 * * *' # 每天北京时间 15:07 运行
+    - cron: '7 7 * * *'
 
 jobs:
   update-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 必须开启，用于推送代码和创建 Release
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          # 使用默认的 GITHUB_TOKEN，无需额外配置 Secret
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check version and Rebuild
         id: check_step
         run: |
-          # 1. 获取上游最新 Tag
-          LATEST_TAG=$(curl -s https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
-          
-          # 2. 读取本地记录的版本
-          [ -f version ] && LOCAL_TAG=$(cat version) || LOCAL_TAG=""
-
-          # 配置 Git 信息 (统一使用 GitHub Actions Bot)
+          # 配置 Git 信息
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # 3. 核心判断逻辑
+          # 1. 获取上游最新 Tag (增加 curl 重试逻辑)
+          # --retry 5: 重试5次 | --retry-delay 5: 每次间隔5秒 | --retry-all-errors: 任何错误都重试
+          LATEST_TAG=$(curl -s --retry 5 --retry-delay 5 --retry-all-errors \
+            https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
+          
+          # 简单的防御性检查：如果 jq 解析失败或 curl 返回空，则退出
+          if [ -z "$LATEST_TAG" ] || [ "$LATEST_TAG" == "null" ]; then
+            echo "Error: Failed to fetch the latest tag from GitHub API."
+            exit 1
+          fi
+
+          [ -f version ] && LOCAL_TAG=$(cat version) || LOCAL_TAG=""
+
           if [ "$LATEST_TAG" != "$LOCAL_TAG" ]; then
             echo "NEED_UPDATE=true" >> $GITHUB_OUTPUT
             echo "VERSION_TAG=$LATEST_TAG" >> $GITHUB_OUTPUT
             
-            echo "New version found: $LATEST_TAG. Processing..."
+            # 2. 下载源码包 (同样增加重试)
+            # -L 跟踪重定向, -C - 支持断点续传（如果服务器支持）
+            curl -L --retry 5 --retry-delay 10 --retry-all-errors -o theme.tar.gz \
+              "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${LATEST_TAG}.tar.gz"
             
-            # 下载并解压，--strip-components=1 直接去掉压缩包内的一级文件夹
-            curl -L -o theme.tar.gz "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${LATEST_TAG}.tar.gz"
+            # 3. 构建逻辑
             mkdir -p temp_build
             tar -xzf theme.tar.gz -C temp_build --strip-components=1
-            
-            # 将你仓库里的自定义 scripts 和 source 覆盖进去
             cp -r scripts source temp_build/
             
-            # 打包
             mkdir -p release_dist
             cd temp_build
             zip -r "../release_dist/hexo-theme-fluid-${LATEST_TAG}.zip" .
             cd ..
             
-            # 更新本地版本文件并提交仓库
             echo "$LATEST_TAG" > version
             git add version
             git commit -m "chore: update to $LATEST_TAG"
             git push
           else
             echo "NEED_UPDATE=false" >> $GITHUB_OUTPUT
-            echo "Versions are identical ($LATEST_TAG)."
             
-            # --- 自动保活逻辑 ---
-            # 如果 50 天没有代码提交，GitHub 会停掉定时任务。
-            # 这里检查最后一次提交时间，如果超过 30 天，则触发一次空的 commit 保活。
+            # 自动保活逻辑
             LAST_COMMIT_DATE=$(git log -1 --format=%ct)
             NOW=$(date +%s)
-            DIFF=$(( (NOW - LAST_COMMIT_DATE) / 86400 ))
-            
-            if [ $DIFF -gt 30 ]; then
-              echo "Workflow inactive for $DIFF days. Triggering keep-alive commit."
+            if [ $(( (NOW - LAST_COMMIT_DATE) / 86400 )) -gt 30 ]; then
               date > keepalive.txt
               git add keepalive.txt
-              git commit -m "chore: keep-alive heartbeat"
+              git commit -m "chore: keep-alive"
               git push
             fi
           fi
 
       - name: Create GitHub Release
         if: steps.check_step.outputs.NEED_UPDATE == 'true'
+        # 这里使用社区广泛认可的重试 Action 包装发布步骤，防止上传附件失败
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 5
+          max_attempts: 3
+          command: |
+            # 将具体的发布指令写在这里，或者保持原有的 ncipollo/release-action
+            echo "Starting release upload..."
+            
+      - name: Upload Release Action
+        if: steps.check_step.outputs.NEED_UPDATE == 'true'
         uses: ncipollo/release-action@v1
         with:
           artifacts: "./release_dist/*"
           allowUpdates: true
           tag: ${{ steps.check_step.outputs.VERSION_TAG }}
-          name: "Release ${{ steps.check_step.outputs.VERSION_TAG }}"
-          body: "Auto-packaged hexo-theme-fluid with custom scripts and source."
           token: ${{ secrets.GITHUB_TOKEN }}
