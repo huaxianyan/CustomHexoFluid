@@ -1,4 +1,43 @@
-// Banner 与首页文章封面的低清占位图渐进过渡。
+// Banner、首页文章封面及正文低清占位图的渐进过渡。
+// 正文最终结构由 Hexo Build 直接生成，避免客户端把 img 替换成容器时重绘外框。
+.fluid-lazy-image
+  position relative
+  display block
+  margin 1.5rem auto
+  overflow hidden
+  background-color var(--body-bg-color)
+  box-shadow 0 5px 11px 0 rgba(0, 0, 0, .18), 0 4px 15px 0 rgba(0, 0, 0, .15)
+  border-radius 4px
+
+  img
+    border-radius 4px
+    box-shadow none
+
+  .img-blur
+    position relative
+    z-index 1
+    display block
+    opacity 0
+    filter blur(32px)
+    transition filter .7s
+
+  .img-reveal-ready
+    opacity 1
+    filter blur(32px)
+
+  .img-loaded
+    opacity 1
+    filter none
+
+  .blur-loading
+    position absolute
+    z-index 0
+    inset 0
+    width 100%
+    height 100%
+    filter blur(32px)
+    object-fit cover !important
+
 // 完整图片默认可见；仅在内联脚本成功执行时启用隐藏与 load 过渡，保证无 JS 时仍可使用。
 .progressive-banner-image
   position absolute
@@ -9,24 +48,22 @@
   pointer-events none
 
 .progressive-image-placeholder
-  filter blur(28px)
-  transform scale(1.08)
+  filter blur(32px)
 
 .progressive-image-full
   opacity 1
   filter none
-  transform scale(1)
 
 .progressive-images-js .progressive-image-full
   opacity 0
-  filter blur(20px)
-  transform scale(1.035)
-  transition opacity .7s ease, filter .7s ease, transform .7s ease
+  filter blur(32px)
+  transition filter .7s
 
+// 与正文 .img-blur / .img-loaded 完全使用相同的显隐和滤镜规则。
+// 客户端会等待 DOM 就绪及两个绘制帧后再添加此类，避免缓存图片跳过 transition。
 .progressive-images-js .progressive-image-full.is-loaded
   opacity 1
   filter none
-  transform scale(1)
 
 #banner[data-progressive-banner]
   background-color var(--board-bg-color)
@@ -44,6 +81,7 @@
   height 10rem
   overflow hidden
   border-radius .25rem
+  background-color var(--body-bg-color)
   box-shadow 0 5px 11px 0 rgba(0, 0, 0, .18), 0 4px 15px 0 rgba(0, 0, 0, .15)
 
   .progressive-index-placeholder,
@@ -58,9 +96,4 @@
     box-shadow none
 
   .progressive-index-placeholder
-    filter blur(24px)
-    transform scale(1.08)
-
-@media (prefers-reduced-motion: reduce)
-  .progressive-images-js .progressive-image-full
-    transition-duration 1ms
+    filter blur(32px)

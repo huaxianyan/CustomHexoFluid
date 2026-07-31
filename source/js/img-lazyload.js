@@ -1,65 +1,65 @@
-/* global Fluid, CONFIG */
+/* global jQuery */
 
-// (function(window, document) {
-//   for (const each of document.querySelectorAll('img[lazyload]')) {
-//     Fluid.utils.waitElementVisible(each, function() {
-//       each.removeAttribute('srcset');
-//       each.removeAttribute('lazyload');
-//     }, CONFIG.lazyload.offset_factor);
-//   }
-// })(window, document);
+(function() {
+  const boxSelector = '.fluid-lazy-image';
 
-(function(){
-  const className = `img-box-${Math.floor(Math.random() * 100)}`
+  const revealFullImage = (image) => {
+    if (image.__fluidRevealPending) return;
+    image.__fluidRevealPending = true;
 
-  jQuery('head').append(`<style>
-  .${className} {
-    position: relative;
-    margin: 1.5rem auto;
-    overflow: hidden;
-    box-shadow: 0 5px 11px 0 rgb(0 0 0 / 18%), 0 4px 15px 0 rgb(0 0 0 / 15%);
-    border-radius: 4px;
-  }
-  .${className} .img-blur {
-    filter: blur(32px);
-    transition: filter 0.7s;
-    opacity: 0;
-  }
-  .${className} .img-loaded {
-    filter: none;
-    opacity: 1;
-  }
-  .${className} img {
-    border-radius: 4px;
-  }
-  .${className} .blur-loading {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    left: 0;
-    top: 0;
-    filter: blur(32px);
-    object-fit: cover !important;
-  }
-  </style>`)
-  jQuery('img[lazyload]').each(function() {
-    const elem = $(this)
-    const src = elem.attr('src')
-    const mini = src.replace(/\.[^.]+$/, '_proc.jpg')
-    const style = elem.attr('style')
-    elem.replaceWith(`<div class="${className}" style="${style}">
-      <img class="img-blur" data-src="${src}" loading="lazy">
-      <img class="blur-loading" src="${mini}">
-    </div>`)
-  })
-  jQuery('.img-blur').on('load', function() {
-    const elem = $(this)
-    elem.addClass('img-loaded')
-    elem.closest(`.${className}`).find('.blur-loading').remove()
-  })
-  jQuery('.blur-loading').on('load', function() {
-    const elem = $(this)
-    const img = elem.closest(`.${className}`).find('.img-blur')
-    img.attr('src', img.data('src'))
-  })
-})()
+    const reveal = () => {
+      const elem = jQuery(image);
+      const box = elem.closest(boxSelector);
+      const placeholder = box.find('.blur-loading');
+
+      // 先让已解码原图以 blur(32px) 真正绘制一帧，缓存命中时也不会跳过 transition。
+      elem.addClass('img-reveal-ready');
+      void image.offsetWidth;
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          let removed = false;
+          const removePlaceholder = () => {
+            if (removed) return;
+            removed = true;
+            placeholder.remove();
+          };
+
+          elem.one('transitionend', function(event) {
+            if (!event.originalEvent || event.originalEvent.propertyName === 'filter') {
+              removePlaceholder();
+            }
+          });
+          elem.addClass('img-loaded');
+          window.setTimeout(removePlaceholder, 850);
+        });
+      });
+    };
+
+    if (typeof image.decode === 'function') {
+      image.decode().then(reveal, reveal);
+    } else {
+      reveal();
+    }
+  };
+
+  jQuery(`${boxSelector} .img-blur`).one('load', function() {
+    revealFullImage(this);
+  });
+
+  jQuery(`${boxSelector} .blur-loading`).each(function() {
+    const placeholder = this;
+    const startOriginal = () => {
+      if (placeholder.__fluidOriginalStarted) return;
+      placeholder.__fluidOriginalStarted = true;
+      const image = jQuery(placeholder).closest(boxSelector).find('.img-blur');
+      image.attr('src', image.data('src'));
+    };
+
+    jQuery(placeholder).one('load', startOriginal).one('error', startOriginal);
+
+    if (placeholder.complete) {
+      window.setTimeout(startOriginal, 0);
+    }
+  });
+})();

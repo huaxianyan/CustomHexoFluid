@@ -1,0 +1,258 @@
+/* global Fluid */
+
+HTMLElement.prototype.wrap = function(wrapper) {
+  this.parentNode.insertBefore(wrapper, this);
+  this.parentNode.removeChild(this);
+  wrapper.appendChild(this);
+};
+
+Fluid.events = {
+
+  registerNavbarEvent: function() {
+    var navbar = jQuery('#navbar');
+    if (navbar.length === 0) {
+      return;
+    }
+    var submenu = jQuery('#navbar .dropdown-menu');
+    var readyTimer = 0;
+    var nextFrame = window.requestAnimationFrame
+      ? window.requestAnimationFrame.bind(window)
+      : function(callback) { return window.setTimeout(callback, 16); };
+
+    var getScrollTop = function() {
+      return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    };
+
+    var syncNavbar = function() {
+      var scrollTop = getScrollTop();
+      var collapsed = scrollTop > 50;
+      navbar[collapsed ? 'addClass' : 'removeClass']('top-nav-collapse');
+      submenu[collapsed ? 'addClass' : 'removeClass']('dropdown-collapse');
+      if (scrollTop > 0) {
+        navbar.removeClass('navbar-dark');
+        submenu.removeClass('navbar-dark');
+      } else {
+        navbar.addClass('navbar-dark');
+        submenu.removeClass('navbar-dark');
+      }
+    };
+
+    var scheduleNavbarReady = function() {
+      if (!navbar.hasClass('navbar-initializing')) return;
+      window.clearTimeout(readyTimer);
+      readyTimer = window.setTimeout(function() {
+        nextFrame(function() {
+          nextFrame(function() {
+            syncNavbar();
+            navbar.removeClass('navbar-initializing');
+          });
+        });
+      }, 100);
+    };
+
+    // 浏览器恢复刷新前的滚动位置期间持续无动画同步；位置稳定后才启用日常滚动动画。
+    syncNavbar();
+    Fluid.utils.listenScroll(function() {
+      syncNavbar();
+      scheduleNavbarReady();
+    });
+    jQuery(window).one('load.navbarInit pageshow.navbarInit', scheduleNavbarReady);
+    window.setTimeout(scheduleNavbarReady, 600);
+
+    var mobileGridMenu = jQuery('#mobile-grid-menu');
+
+    jQuery('#navbar-toggler-btn').on('click', function() {
+      var $this = jQuery(this);
+      if ($this.data('animating')) {
+        return;
+      }
+      $this.data('animating', true);
+      jQuery('.animated-icon').toggleClass('open');
+
+      // On mobile use grid menu; on desktop keep original collapse behavior
+      if (window.innerWidth < 992) {
+        navbar.addClass('top-nav-collapse');
+        mobileGridMenu.toggleClass('show');
+        // Apply staggered animation delays when opening
+        if (mobileGridMenu.hasClass('show')) {
+          mobileGridMenu.find('.mobile-grid-cell, .mobile-grid-group-header').each(function(i, el) {
+            el.style.animationDelay = (i * 20) + 'ms';
+          });
+        }
+        // Prevent body scroll when menu is open
+        jQuery('body').toggleClass('mobile-menu-open', mobileGridMenu.hasClass('show'));
+      } else {
+        jQuery('#navbar').toggleClass('navbar-col-show');
+      }
+
+      setTimeout(function() {
+        $this.data('animating', false);
+      }, 300);
+    });
+
+    // Close grid menu when a link inside it is clicked
+    mobileGridMenu.on('click', 'a[href]:not([href="javascript:;"])', function() {
+      mobileGridMenu.removeClass('show');
+      jQuery('.animated-icon').removeClass('open');
+      jQuery('body').removeClass('mobile-menu-open');
+      navbar.removeClass('top-nav-collapse');
+      jQuery('#navbar-toggler-btn').data('animating', false);
+    });
+
+    // Close grid menu on resize to desktop
+    jQuery(window).on('resize', function() {
+      if (window.innerWidth >= 992 && mobileGridMenu.hasClass('show')) {
+        mobileGridMenu.removeClass('show');
+        jQuery('.animated-icon').removeClass('open');
+        jQuery('body').removeClass('mobile-menu-open');
+      }
+    });
+  },
+
+  registerParallaxEvent: function() {
+    var ph = jQuery('#banner[parallax="true"]');
+    if (ph.length === 0) {
+      return;
+    }
+    var board = jQuery('#board');
+    if (board.length === 0) {
+      return;
+    }
+    var parallax = function() {
+      var pxv = jQuery(window).scrollTop() / 5;
+      var offset = parseInt(board.css('margin-top'), 10);
+      var max = 96 + offset;
+      if (pxv > max) {
+        pxv = max;
+      }
+      ph.css({
+        transform: 'translate3d(0,' + pxv + 'px,0)'
+      });
+      var sideCol = jQuery('.side-col');
+      if (sideCol) {
+        sideCol.css({
+          'padding-top': pxv + 'px'
+        });
+      }
+    };
+    Fluid.utils.listenScroll(parallax);
+  },
+
+  registerScrollDownArrowEvent: function() {
+    var scrollbar = jQuery('.scroll-down-bar');
+    if (scrollbar.length === 0) {
+      return;
+    }
+    scrollbar.on('click', function() {
+      Fluid.utils.scrollToElement('#board', -jQuery('#navbar').height());
+    });
+  },
+
+  registerScrollTopArrowEvent: function() {
+    var topArrow = jQuery('#scroll-top-button');
+    if (topArrow.length === 0) {
+      return;
+    }
+    var board = jQuery('#board');
+    if (board.length === 0) {
+      return;
+    }
+    var posDisplay = false;
+    var scrollDisplay = false;
+    // Position
+    var setTopArrowPos = function() {
+      var boardRight = board[0].getClientRects()[0].right;
+      var bodyWidth = document.body.offsetWidth;
+      var right = bodyWidth - boardRight;
+      posDisplay = right >= 50;
+      topArrow.css({
+        'bottom': posDisplay && scrollDisplay ? '20px' : '-60px',
+        'right' : right - 64 + 'px'
+      });
+    };
+    setTopArrowPos();
+    jQuery(window).resize(setTopArrowPos);
+    // Display
+    var headerHeight = board.offset().top;
+    Fluid.utils.listenScroll(function() {
+      var scrollHeight = document.body.scrollTop + document.documentElement.scrollTop;
+      scrollDisplay = scrollHeight >= headerHeight;
+      topArrow.css({
+        'bottom': posDisplay && scrollDisplay ? '20px' : '-60px'
+      });
+    });
+    // Click
+    topArrow.on('click', function() {
+      jQuery('body,html').animate({
+        scrollTop: 0,
+        easing   : 'swing'
+      });
+    });
+  },
+
+  registerImageLoadedEvent: function() {
+    if (!('NProgress' in window)) { return; }
+
+    var bg = document.getElementById('banner');
+    if (bg) {
+      var src = bg.style.backgroundImage;
+      var url = src.match(/\((.*?)\)/)[1].replace(/(['"])/g, '');
+      var img = new Image();
+      img.onload = function() {
+        window.NProgress && window.NProgress.status !== null && window.NProgress.inc(0.2);
+      };
+      img.src = url;
+      if (img.complete) { img.onload(); }
+    }
+
+    var notLazyImages = jQuery('main img:not([lazyload])');
+    var total = notLazyImages.length;
+    for (const img of notLazyImages) {
+      const old = img.onload;
+      img.onload = function() {
+        old && old();
+        window.NProgress && window.NProgress.status !== null && window.NProgress.inc(0.5 / total);
+      };
+      if (img.complete) { img.onload(); }
+    }
+  },
+
+  registerRefreshCallback: function(callback) {
+    if (!Array.isArray(Fluid.events._refreshCallbacks)) {
+      Fluid.events._refreshCallbacks = [];
+    }
+    Fluid.events._refreshCallbacks.push(callback);
+  },
+
+  refresh: function() {
+    if (Array.isArray(Fluid.events._refreshCallbacks)) {
+      for (var callback of Fluid.events._refreshCallbacks) {
+        if (callback instanceof Function) {
+          callback();
+        }
+      }
+    }
+  },
+
+  billboard: function() {
+    if (!('console' in window)) {
+      return;
+    }
+    // eslint-disable-next-line no-console
+    console.log(`
+-------------------------------------------------
+|                                               |
+|      ________  __            _        __      |
+|     |_   __  |[  |          (_)      |  ]     |
+|       | |_ \\_| | | __   _   __   .--.| |      |
+|       |  _|    | |[  | | | [  |/ /'\`\\' |      |
+|      _| |_     | | | \\_/ |, | || \\__/  |      |
+|     |_____|   [___]'.__.'_/[___]'.__.;__]     |
+|                                               |
+|            Powered by Hexo x Fluid            |
+| https://github.com/fluid-dev/hexo-theme-fluid |
+|                                               |
+-------------------------------------------------
+    `);
+  }
+};
