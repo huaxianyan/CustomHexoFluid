@@ -5,6 +5,9 @@ const urlJoin = require('../../utils/url-join');
 const sizeOf = require('image-size');
 
 module.exports = (hexo) => {
+  // Banner 与首页 index_img 使用独立的渐进式加载策略，避免正文图片包装改变卡片尺寸。
+  require('./progressive-images')(hexo);
+
   const config = hexo.theme.config;
   const loadingImage = urlJoin(hexo.config.root, config.lazyload.loading_img
     || urlJoin(config.static_prefix.internal_img, 'loading.gif'));
