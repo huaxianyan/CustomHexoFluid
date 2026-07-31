@@ -69,6 +69,13 @@ jobs:
             git push origin HEAD:deploy
           fi
 
+      - name: Update release tag to deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag -f "${{ steps.prepare.outputs.tag }}" HEAD
+          git push origin "refs/tags/${{ steps.prepare.outputs.tag }}" --force
+
       - name: Package merged theme
         shell: bash
         run: |
