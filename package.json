@@ -1,7 +1,0 @@
-{
-  "name": "custom-hexo-fluid-overrides",
-  "private": true,
-  "scripts": {
-    "install-jq": "sudo apt-get install jq"
-  }
-}
