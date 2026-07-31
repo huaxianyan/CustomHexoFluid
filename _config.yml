@@ -333,9 +333,23 @@ canonical:
 # 对页面中的图片和评论插件进行懒加载处理，可见范围外的元素不会提前加载
 # Lazy loading of images and comment plugin on the page
 lazyload:
+  # 图片渐进加载的总开关
+  # Master switch for progressive image loading
   enable: true
 
-  # 加载时的占位图片
+  # 正文及 onlypost 所控制范围内的普通图片
+  # Images in post content, or in the scope controlled by onlypost
+  post: true
+
+  # 页面顶部 Banner
+  # Page header banner
+  banner: true
+
+  # 首页文章卡片的 index_img
+  # Post index_img on the home page
+  index: true
+
+  # 加载时的占位图片（保留用于兼容 Fluid 原配置）
   # The placeholder image when loading
   loading_img: /img/loading.gif
 

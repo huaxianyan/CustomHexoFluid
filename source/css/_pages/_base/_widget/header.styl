@@ -38,6 +38,11 @@
     -webkit-transition background 0.5s ease-in-out, padding 0.5s ease-in-out
     transition background 0.5s ease-in-out, padding 0.5s ease-in-out
 
+    // 刷新并恢复滚动位置时先无动画同步最终状态，避免 padding 布局动画被首屏任务卡顿。
+    &.navbar-initializing
+      -webkit-transition none !important
+      transition none !important
+
     @media (min-width: 600px)
       &
         padding-top 12px

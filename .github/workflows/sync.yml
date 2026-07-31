@@ -1,11 +1,11 @@
-name: Sync Fluid and build custom release
+name: Sync Fluid and build deploy release
 
 on:
   workflow_dispatch:
   push:
-    branches: [custom]
+    branches: [main]
   schedule:
-    - cron: '7 7 * * *'
+    - cron: '7 7 * * 1'
 
 permissions:
   contents: write
@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout merged branch
+      - name: Checkout deploy branch
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: deploy
           fetch-depth: 0
 
       - name: Download upstream and overlay custom branch
@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          git fetch origin custom
+          git fetch origin main
 
           LATEST_TAG=$(curl -fsSL --retry 5 --retry-delay 5 --retry-all-errors \
             https://api.github.com/repos/fluid-dev/hexo-theme-fluid/releases/latest | jq -r '.tag_name')
@@ -44,14 +44,16 @@ jobs:
             "https://github.com/fluid-dev/hexo-theme-fluid/archive/refs/tags/${LATEST_TAG}.tar.gz" \
             | tar -xz -C "$UPSTREAM_DIR" --strip-components=1
 
-          git archive origin/custom README.md scripts source .github/workflows/sync.yml \
+          git archive origin/main README.md _config.yml layout scripts source .github/workflows/sync.yml \
             | tar -x -C "$CUSTOM_DIR"
 
-          # main 始终是完整上游主题；先完整同步，再覆盖 custom 分支中的个人修改。
+          # deploy 始终是完整上游主题；先完整同步，再覆盖 main 分支中的个人修改。
           rsync -a --delete --exclude='.git/' "$UPSTREAM_DIR/" ./
           rm -rf .github
           cp -a "$CUSTOM_DIR/.github" ./.github
           cp -a "$CUSTOM_DIR/README.md" ./README.md
+          cp -a "$CUSTOM_DIR/_config.yml" ./_config.yml
+          cp -a "$CUSTOM_DIR/layout/." ./layout/
           cp -a "$CUSTOM_DIR/scripts/." ./scripts/
           cp -a "$CUSTOM_DIR/source/." ./source/
 
@@ -64,7 +66,7 @@ jobs:
           git add -A
           if ! git diff --cached --quiet; then
             git commit -m "chore: merge Fluid ${{ steps.prepare.outputs.tag }} with custom overrides"
-            git push origin HEAD:main
+            git push origin HEAD:deploy
           fi
 
       - name: Package merged theme

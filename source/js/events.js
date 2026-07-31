@@ -14,21 +14,50 @@ Fluid.events = {
       return;
     }
     var submenu = jQuery('#navbar .dropdown-menu');
-    if (navbar.offset().top > 0) {
-      navbar.removeClass('navbar-dark');
-      submenu.removeClass('navbar-dark');
-    }
-    Fluid.utils.listenScroll(function() {
-      navbar[navbar.offset().top > 50 ? 'addClass' : 'removeClass']('top-nav-collapse');
-      submenu[navbar.offset().top > 50 ? 'addClass' : 'removeClass']('dropdown-collapse');
-      if (navbar.offset().top > 0) {
+    var readyTimer = 0;
+    var nextFrame = window.requestAnimationFrame
+      ? window.requestAnimationFrame.bind(window)
+      : function(callback) { return window.setTimeout(callback, 16); };
+
+    var getScrollTop = function() {
+      return window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    };
+
+    var syncNavbar = function() {
+      var scrollTop = getScrollTop();
+      var collapsed = scrollTop > 50;
+      navbar[collapsed ? 'addClass' : 'removeClass']('top-nav-collapse');
+      submenu[collapsed ? 'addClass' : 'removeClass']('dropdown-collapse');
+      if (scrollTop > 0) {
         navbar.removeClass('navbar-dark');
         submenu.removeClass('navbar-dark');
       } else {
         navbar.addClass('navbar-dark');
         submenu.removeClass('navbar-dark');
       }
+    };
+
+    var scheduleNavbarReady = function() {
+      if (!navbar.hasClass('navbar-initializing')) return;
+      window.clearTimeout(readyTimer);
+      readyTimer = window.setTimeout(function() {
+        nextFrame(function() {
+          nextFrame(function() {
+            syncNavbar();
+            navbar.removeClass('navbar-initializing');
+          });
+        });
+      }, 100);
+    };
+
+    // 浏览器恢复刷新前的滚动位置期间持续无动画同步；位置稳定后才启用日常滚动动画。
+    syncNavbar();
+    Fluid.utils.listenScroll(function() {
+      syncNavbar();
+      scheduleNavbarReady();
     });
+    jQuery(window).one('load.navbarInit pageshow.navbarInit', scheduleNavbarReady);
+    window.setTimeout(scheduleNavbarReady, 600);
 
     var mobileGridMenu = jQuery('#mobile-grid-menu');
 

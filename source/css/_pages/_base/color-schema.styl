@@ -45,7 +45,7 @@ dark-colors()
   --fold-title-color $text-color
   --fold-border-color $line-color
 
-  img:not(.img-loaded,.img-blur,.blur-loading,.progressive-banner-image,.progressive-index-placeholder,.progressive-index-full)
+  img:not(.img-loaded,.img-blur,.blur-loading,.progressive-banner-image,.progressive-index-placeholder,.progressive-index-full):not([data-original-src])
     -webkit-filter brightness(.9)
     filter brightness(.9)
     transition filter .2s ease-in-out
