@@ -52,15 +52,21 @@ module.exports = (hexo) => {
 
 const createImageTransformer = (imageAssets) => {
   return (htmlContent) => {
-    // index_img 始终交给独立的 index 开关；避免 onlypost=false 时被正文包装器接管。
+    // index_img 交给独立的 index 开关；About 头像沿用 Fluid 原生直接加载，
+    // 避免 onlypost=false 时被正文图片包装器接管。
     const protectedBlocks = [];
-    const maskedContent = htmlContent.replace(
+    const protectBlock = (block) => {
+      const token = `<!-- fluid-protected-image-${protectedBlocks.length} -->`;
+      protectedBlocks.push(block);
+      return token;
+    };
+    let maskedContent = htmlContent.replace(
       /<div\b[^>]*\bclass=(["'])[^"']*\bindex-img\b[^"']*\1[^>]*>[\s\S]*?<\/div>/gi,
-      (block) => {
-        const token = `<!-- fluid-index-image-${protectedBlocks.length} -->`;
-        protectedBlocks.push(block);
-        return token;
-      }
+      protectBlock
+    );
+    maskedContent = maskedContent.replace(
+      /<div\b[^>]*\bclass=(["'])[^"']*\babout-avatar\b[^"']*\1[^>]*>[\s\S]*?<\/div>/gi,
+      protectBlock
     );
 
     const transformed = maskedContent.replace(
@@ -108,7 +114,7 @@ const createImageTransformer = (imageAssets) => {
     }
     );
 
-    return transformed.replace(/<!-- fluid-index-image-(\d+) -->/g, (token, index) => {
+    return transformed.replace(/<!-- fluid-protected-image-(\d+) -->/g, (token, index) => {
       return protectedBlocks[Number(index)] || token;
     });
   };
