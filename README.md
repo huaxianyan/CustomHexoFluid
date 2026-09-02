@@ -4,14 +4,14 @@
 
 ## 获取主题
 
-可直接从 [GitHub Releases](https://github.com/huaxianyan/CustomHexoFluid/releases) 下载完整主题压缩包，也可以使用 [`deploy`](https://github.com/huaxianyan/CustomHexoFluid/tree/deploy) 分支。
+[`main`](https://github.com/huaxianyan/CustomHexoFluid/tree/main) 是已经合入个人修改的完整主题，可直接安装。GitHub Releases 保留各次发布的完整主题快照。
 
-`main` 只保存相对 Fluid 上游新增或修改的文件，不是完整主题，不能直接安装。
+只需要审查个人修改时，可以查看 [`custom`](https://github.com/huaxianyan/CustomHexoFluid/tree/custom) 分支。
 
 ## 分支
 
-- [`main`](https://github.com/huaxianyan/CustomHexoFluid/tree/main)：保存个人覆盖文件，便于审查和维护改动
-- [`deploy`](https://github.com/huaxianyan/CustomHexoFluid/tree/deploy)：保存 Fluid 上游源码与个人覆盖合并后的完整主题
+- [`main`](https://github.com/huaxianyan/CustomHexoFluid/tree/main)：完整可安装主题，包含 Fluid 上游源码和已经确认的个人修改
+- [`custom`](https://github.com/huaxianyan/CustomHexoFluid/tree/custom)：只保存相对 Fluid 上游新增或修改的文件，便于审查和维护
 
 ## 功能
 
@@ -82,7 +82,7 @@ Vary: Accept
 
 建议按以下顺序更新：
 
-1. 比较当前 `deploy` 与 Fluid 新版本的差异。
-2. 确认上游变更是否影响 `main` 中的个人覆盖文件。
-3. 按功能逐项合并并完成本地 Hexo 构建验证。
-4. 验证通过后，人工更新 `deploy`、Release Tag 和主题压缩包。
+1. 比较当前 `main` 与 Fluid 新版本的差异。
+2. 确认上游变更是否影响 `custom` 中的个人覆盖文件。
+3. 在 `custom` 中维护个人修改，并按功能逐项合入完整主题。
+4. 完成本地 Hexo 构建验证后，人工更新 `main`、Release Tag 和主题压缩包。
