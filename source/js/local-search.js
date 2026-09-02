@@ -2,11 +2,12 @@
 
 (function() {
   // Modified from [hexo-generator-search](https://github.com/wzpan/hexo-generator-search)
-  function localSearchFunc(path, searchSelector, resultSelector) {
+  function localSearchFunc(path, searchSelector, resultSelector, clearSelector) {
     'use strict';
     // 0x00. environment initialization
     var $input = jQuery(searchSelector);
     var $result = jQuery(resultSelector);
+    var $clear = jQuery(clearSelector);
 
     if ($input.length === 0) {
       // eslint-disable-next-line no-console
@@ -39,12 +40,14 @@
           $result.html('');
         }
 
-        $input.on('input', function() {
+        $input.off('input.localSearch').on('input.localSearch', function() {
           // 0x03. parse query to keywords list
           var content = $input.val();
           var resultHTML = '';
           var keywords = content.trim().toLowerCase().split(/[\s-]+/);
           $result.html('');
+          $clear.toggleClass('show', content.length > 0);
+          $input.toggleClass('has-clear', content.length > 0);
           if (content.trim().length <= 0) {
             return $input.removeClass('invalid').removeClass('valid');
           }
@@ -66,7 +69,7 @@
             if (CONFIG.include_content_in_search && data_content === '') {
               isMatch = false;
             } else {
-              keywords.forEach(function (keyword, i) {
+              keywords.forEach(function(keyword, i) {
                 index_title = data_title.indexOf(keyword);
                 index_content = data_content.indexOf(keyword);
 
@@ -125,7 +128,7 @@
     });
   }
 
-  function localSearchReset(searchSelector, resultSelector) {
+  function localSearchReset(searchSelector, resultSelector, clearSelector) {
     'use strict';
     var $input = jQuery(searchSelector);
     var $result = jQuery(resultSelector);
@@ -139,21 +142,27 @@
       throw Error('No element selected by the resultSelector');
     }
 
-    $input.val('').removeClass('invalid').removeClass('valid');
+    $input.val('').removeClass('invalid valid has-clear');
     $result.html('');
+    jQuery(clearSelector).removeClass('show');
   }
 
   var modal = jQuery('#modalSearch');
   var searchSelector = '#local-search-input';
   var resultSelector = '#local-search-result';
+  var clearSelector = '#local-search-clear';
   modal.on('show.bs.modal', function() {
     var path = CONFIG.search_path || '/local-search.xml';
-    localSearchFunc(path, searchSelector, resultSelector);
+    localSearchFunc(path, searchSelector, resultSelector, clearSelector);
   });
   modal.on('shown.bs.modal', function() {
-    jQuery('#local-search-input').focus();
+    jQuery(searchSelector).focus();
   });
   modal.on('hidden.bs.modal', function() {
-    localSearchReset(searchSelector, resultSelector);
+    localSearchReset(searchSelector, resultSelector, clearSelector);
+  });
+  jQuery(clearSelector).on('click', function() {
+    localSearchReset(searchSelector, resultSelector, clearSelector);
+    jQuery(searchSelector).focus();
   });
 })();

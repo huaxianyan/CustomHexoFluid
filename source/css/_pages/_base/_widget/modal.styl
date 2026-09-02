@@ -83,6 +83,10 @@
       background-color transparent
       border-radius 0
 
+    &.has-clear
+      width calc(100% - 3.25rem)
+      padding-right 3.25rem
+
   label
     font-size 0.8rem
     position absolute
@@ -91,6 +95,27 @@
     color #757575
     cursor text
     transition color .2s ease-out
+
+.local-search-clear
+  display none
+  position absolute
+  right 0
+  bottom .5rem
+  padding .5rem 0 .4375rem .75rem
+  color #6b7280
+  font-size .8125rem
+  line-height 1.5rem
+  background transparent
+  border 0
+  outline 0
+  transition color .2s ease-in-out
+
+  &.show
+    display block
+
+  &:hover, &:focus
+    color var(--link-hover-color)
+    outline 0
 
 .modal-open[style]
   padding-right: 0 !important
