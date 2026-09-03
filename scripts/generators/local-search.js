@@ -22,6 +22,13 @@ hexo.extend.generator.register('_hexo_generator_search', function(locals) {
     return str && str.replace(/[\x00-\x1F\x7F]/g, '');
   });
 
+  env.addFilter('stableItems', function(collection) {
+    const items = collection && typeof collection.toArray === 'function'
+      ? collection.toArray()
+      : Array.from(collection || []);
+    return items.sort((a, b) => String(a.name || a.path || '').localeCompare(String(b.name || b.path || ''), 'en'));
+  });
+
   env.addFilter('urlJoin', function(str) {
     const base = str[0];
     const relative = str[1];
@@ -38,19 +45,22 @@ hexo.extend.generator.register('_hexo_generator_search', function(locals) {
   const content = searchConfig.content && true;
 
   let posts, pages;
+  const compareByDateAndPath = (a, b) => b.date.valueOf() - a.date.valueOf()
+    || String(a.path).localeCompare(String(b.path), 'en');
+  const compareByPath = (a, b) => String(a.path).localeCompare(String(b.path), 'en');
 
   if (searchField.trim() !== '') {
     searchField = searchField.trim();
     if (searchField === 'post') {
-      posts = locals.posts.sort('-date');
+      posts = locals.posts.toArray().sort(compareByDateAndPath);
     } else if (searchField === 'page') {
-      pages = locals.pages;
+      pages = locals.pages.toArray().sort(compareByPath);
     } else {
-      posts = locals.posts.sort('-date');
-      pages = locals.pages;
+      posts = locals.posts.toArray().sort(compareByDateAndPath);
+      pages = locals.pages.toArray().sort(compareByPath);
     }
   } else {
-    posts = locals.posts.sort('-date');
+    posts = locals.posts.toArray().sort(compareByDateAndPath);
   }
 
   const xml = searchTmpl.render({
