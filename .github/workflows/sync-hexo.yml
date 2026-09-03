@@ -44,6 +44,7 @@ jobs:
             --archive \
             --delete \
             --exclude=.git/ \
+            --exclude=.github/ \
             theme-source/ \
             hexo-target/themes/Fluid/
 
