@@ -40,7 +40,10 @@
           $result.html('');
         }
 
-        $input.off('input.localSearch').on('input.localSearch', function() {
+        var isComposing = false;
+        var compositionTimer;
+
+        function performSearch() {
           // 0x03. parse query to keywords list
           var content = $input.val();
           var resultHTML = '';
@@ -123,7 +126,25 @@
           }
           $input.addClass('valid').removeClass('invalid');
           $result.html(resultHTML);
-        });
+        }
+
+        $input.off('.localSearch')
+          .on('compositionstart.localSearch', function() {
+            isComposing = true;
+            clearTimeout(compositionTimer);
+          })
+          .on('compositionend.localSearch', function() {
+            isComposing = false;
+            clearTimeout(compositionTimer);
+            compositionTimer = setTimeout(performSearch, 0);
+          })
+          .on('input.localSearch', function(event) {
+            if (isComposing || (event.originalEvent && event.originalEvent.isComposing)) {
+              return;
+            }
+            clearTimeout(compositionTimer);
+            performSearch();
+          });
       }
     });
   }
