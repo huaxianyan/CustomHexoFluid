@@ -43,6 +43,7 @@ jobs:
           rsync \
             --archive \
             --delete \
+            --delete-excluded \
             --exclude=.git/ \
             --exclude=.github/ \
             theme-source/ \
