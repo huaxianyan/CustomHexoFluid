@@ -1,0 +1,75 @@
+name: Sync theme to Hexo
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-custom-theme-to-hexo
+  cancel-in-progress: false
+
+jobs:
+  sync-theme:
+    name: Sync theme to private Hexo repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout custom theme
+        uses: actions/checkout@v5
+        with:
+          path: theme-source
+
+      - name: Checkout Hexo source
+        uses: actions/checkout@v5
+        with:
+          repository: huaxianyan/Hexo
+          ref: main
+          token: ${{ secrets.HEXO_SOURCE_SYNC_TOKEN }}
+          path: hexo-target
+          fetch-depth: 0
+
+      - name: Synchronize theme
+        env:
+          THEME_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          rsync \
+            --archive \
+            --delete \
+            --exclude=.git/ \
+            theme-source/ \
+            hexo-target/themes/Fluid/
+
+          printf '%s\n' "$THEME_SHA" > hexo-target/.custom-hexo-fluid-version
+
+      - name: Commit synchronized theme
+        env:
+          THEME_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          git -C hexo-target config user.name 'github-actions[bot]'
+          git -C hexo-target config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C hexo-target add --all themes/Fluid .custom-hexo-fluid-version
+          git -C hexo-target diff --cached --check
+
+          unexpected_paths="$(git -C hexo-target diff --cached --name-only | grep -Ev '^(themes/Fluid/|\.custom-hexo-fluid-version$)' || true)"
+          if [[ -n "$unexpected_paths" ]]; then
+            printf 'Unexpected synchronized paths:\n%s\n' "$unexpected_paths" >&2
+            exit 1
+          fi
+
+          if git -C hexo-target diff --cached --quiet; then
+            echo 'Hexo already uses this theme version.'
+            exit 0
+          fi
+
+          git -C hexo-target commit -m "chore: sync CustomHexoFluid ${THEME_SHA:0:12}"
+          git -C hexo-target push origin HEAD:main
