@@ -13,6 +13,22 @@
 - [`main`](https://github.com/huaxianyan/CustomHexoFluid/tree/main)：完整可安装主题，包含 Fluid 上游源码和已经确认的个人修改
 - [`custom`](https://github.com/huaxianyan/CustomHexoFluid/tree/custom)：只保存相对 Fluid 上游新增或修改的文件，便于审查和维护
 
+## 发布版本
+
+自定义主题的 Release Tag 使用以下格式：
+
+```text
+v<Fluid 上游版本>-custom.<YYYYMMDD>
+```
+
+例如，基于 Fluid `1.9.9` 并在 2026 年 9 月 3 日发布的版本为：
+
+```text
+v1.9.9-custom.20260903
+```
+
+每个 Tag 都是不可覆盖的完整主题快照。旧 Release 不移动、不替换；同一天的修改合并验证后统一发布一次。
+
 ## 功能
 
 ### 渐进式图片加载
