@@ -1,22 +1,33 @@
-// 图标以内联 SVG mask 呈现，不再加载字体文件。
+// 图标字体内联：把 woff2 转成 base64 写进页面的 <style>。
 //
-// 原来两套图标字体（at.alicdn.com 的 iconfont / iconfont2）内联成 base64：
-// 字体要等文档下载完再解码，偶尔还能看到图标闪一下；而且 base64 不可压缩，
-// 18 KB 体积一分不少地进每一页。
+// 两套字体都来自 at.alicdn.com，原来都是外链 CSS：
+//   iconfont  (font_1749284) 主题自带，导航里"首页 / 时间线 / 归档"那些图标
+//   iconfont2 (font_1736178) 站主自己的图集，奖杯页那个 PlayStation 图标等，目前用到 4 个
 //
-// 现在改成把用到的字形（25 + 8 个）从 woff2 提取成 SVG path，写成 mask 规则：
-// 图标随 DOM 一起画出来，零解码；路径数据可 gzip 压缩，首页实际传输从 31 KB 降到 ~25 KB。
+// 为什么必须内联：CSS 是阻塞的没问题，但字体是解析完 CSS 之后才发现的第二个跨域
+// 请求，而 @font-face 没写 font-display（默认 auto），字体到达前图标隐形 3 秒内。
+// 表现就是"文字先出来、图标闪一下"。
 //
-// assets/icons.css 由 fonttools 从 assets/iconfont*/iconfont*.woff2 生成（脚本见
-// 仓库外的 mkicons.py，提取逻辑很简单：解析 CSS 拿码位 → SVGPathPen 取轮廓）。
-// 加图标：改字体源文件后重新生成 icons.css，不要手写 path。
+// 两个字号都只有几 KB，内联后零额外请求、图标与文字同帧出现，顺带去掉第三方依赖。
+// 换图标时替换 scripts/assets/iconfont*/ 下的两个文件即可，不要改回外链。
 const fs = require('fs');
 const path = require('path');
 
-const FILE = path.join(__dirname, '..', '..', 'assets', 'icons.css');
-let cached = null;
+const ASSETS = path.join(__dirname, '..', '..', 'assets');
 
-hexo.extend.helper.register('icon_style', () => {
-  if (!cached) cached = fs.readFileSync(FILE, 'utf8');
-  return cached;
-});
+const build = (dir, name) => {
+  const css = fs.readFileSync(path.join(ASSETS, dir, `${name}.css`), 'utf8');
+  const font = fs.readFileSync(path.join(ASSETS, dir, `${name}.woff2`)).toString('base64');
+
+  // 原 CSS 里 woff2/woff/ttf 三个来源，只保留 woff2（现代浏览器都支持）并内联。
+  return css.replace(/src:[\s\S]*?;/, `src: url(data:font/woff2;base64,${font}) format('woff2');`);
+};
+
+const cache = {};
+const inline = (dir, name) => {
+  cache[dir] = cache[dir] || build(dir, name);
+  return cache[dir];
+};
+
+hexo.extend.helper.register('iconfont_style', () => inline('iconfont', 'iconfont'));
+hexo.extend.helper.register('iconfont2_style', () => inline('iconfont2', 'iconfont2'));
