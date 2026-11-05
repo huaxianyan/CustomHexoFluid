@@ -36,23 +36,18 @@ const createLocalImageAssets = (hexo) => {
       if (!localPath) return '';
       if (placeholderCache.has(localPath)) return placeholderCache.get(localPath);
 
-      const candidates = [
-        { path: localPath.replace(/\.[^./\\]+$/, '_proc.webp'), mime: 'image/webp' },
-        { path: localPath.replace(/\.[^./\\]+$/, '_proc.jpg'), mime: 'image/jpeg' }
-      ];
-
-      for (const candidate of candidates) {
-        try {
-          const stat = fs.statSync(candidate.path);
-          if (stat.isFile() && stat.size <= MAX_INLINE_PLACEHOLDER_BYTES) {
-            const data = fs.readFileSync(candidate.path).toString('base64');
-            const result = `data:${candidate.mime};base64,${data}`;
-            placeholderCache.set(localPath, result);
-            return result;
-          }
-        } catch (_) {
-          // 尝试下一个本地格式。
+      // 占位图由站点构建期生成，格式只有一种：原图同目录 proc/ 下的 17px WebP。
+      try {
+        const placeholderPath = variantPath(localPath, 'proc', 'webp');
+        const stat = fs.statSync(placeholderPath);
+        if (stat.isFile() && stat.size <= MAX_INLINE_PLACEHOLDER_BYTES) {
+          const data = fs.readFileSync(placeholderPath).toString('base64');
+          const result = `data:image/webp;base64,${data}`;
+          placeholderCache.set(localPath, result);
+          return result;
         }
+      } catch (_) {
+        // 没生成变体时返回空串，由调用方拼出远端占位图地址。
       }
 
       placeholderCache.set(localPath, '');
@@ -60,6 +55,14 @@ const createLocalImageAssets = (hexo) => {
     }
   };
 };
+
+// 变体目录约定与站点构建脚本（Hexo 仓库的 generate-image-variants.mjs）一致：
+// 原图 <目录>/<名字>.<ext> 的变体在 <目录>/<变体>/<名字>.<变体扩展名>。
+const variantPath = (localPath, variant, extension) => path.join(
+  path.dirname(localPath),
+  variant,
+  `${path.basename(localPath, path.extname(localPath))}.${extension}`
+);
 
 const resolveLocalImage = (sourceDir, imageUrl) => {
   let pathname = String(imageUrl).split(/[?#]/, 1)[0];
@@ -97,7 +100,8 @@ const getProcessedUrl = (url) => {
   const match = String(url).match(/^([^?#]*)([?#].*)?$/);
   const pathname = match ? match[1] : String(url);
   const suffix = match && match[2] ? match[2] : '';
-  return `${pathname.replace(/\.[^./\\]+$/, '_proc.jpg')}${suffix}`;
+  // a/b/1.jpg → a/b/proc/1.webp，与本地变体目录约定一致。
+  return `${pathname.replace(/(^|\/)([^/]*)\.[^./\\]+$/, '$1proc/$2.webp')}${suffix}`;
 };
 
 module.exports = {

@@ -35,7 +35,7 @@ v1.9.9-custom.20260903
 
 - Banner 原图保持预加载、`eager` 和高请求优先级，先显示构建期内联的低清占位图，再平滑过渡到清晰原图
 - 首页 `index_img` 使用独立的固定尺寸渐进图片结构，不受正文图片尺寸规则影响
-- 正文图片使用构建期内联的 `_proc` 缩略图作为模糊占位，并在原图完成加载和解码后渐变清晰
+- 正文图片使用构建期内联的 `proc/` 占位图作为模糊占位，并在原图完成加载和解码后渐变清晰
 - About 头像保持 Fluid 原生结构并直接加载，不参与正文图片 Lazyload
 - 最终双层图片结构由 Hexo 在构建期生成，避免客户端替换 DOM 引起布局变化和重绘闪烁
 
@@ -43,7 +43,7 @@ v1.9.9-custom.20260903
 
 - `lazyload.post`、`lazyload.banner` 和 `lazyload.index` 可分别控制正文、Banner 与首页封面
 - 兼容仅配置 `lazyload.enable` 和 `lazyload.onlypost` 的旧版配置
-- 本地缺少 `_proc`、AVIF 或 WebP 时仍可正常写作和构建
+- 本地缺少 `proc/` 占位图、AVIF 或 WebP 时仍可正常写作和构建
 - 面向现代 Chrome、Edge、Firefox、Safari、iOS Safari 和 Android 浏览器
 
 ### 其他调整
@@ -78,13 +78,12 @@ lazyload:
 ![](/images/example/image.jpg)
 ```
 
-主题在 Hexo 构建时优先读取 `source/images` 中的本地原图和占位图。占位图按以下顺序选择：
+主题在 Hexo 构建时读取 `source/images` 中的本地原图和占位图。占位图放在原图同目录的 `proc/` 下，与原图同名、扩展名为 `.webp`：
 
-1. `image_proc.webp`
-2. `image_proc.jpg`
-3. 远程 `image_proc.jpg`
+- `source/images/example/image.jpg`（原图）
+- `source/images/example/proc/image.webp`（17px 宽的占位图）
 
-不超过 `4 KiB` 的本地占位图会直接内联到 HTML。原图地址保持不变，可由图片服务器根据客户端的 `Accept` 请求头协商 AVIF、WebP 或原始 JPG/PNG。
+不超过 `4 KiB` 的本地占位图会直接内联到 HTML；本地缺失时回落到图片服务器上同路径的占位图。原图地址保持不变，可由图片服务器根据客户端的 `Accept` 请求头协商 AVIF、WebP 或原始 JPG/PNG。
 
 格式协商属于图片服务器能力，需正确返回：
 
