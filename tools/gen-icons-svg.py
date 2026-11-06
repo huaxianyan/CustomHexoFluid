@@ -34,6 +34,14 @@ from fontTools.ttLib import TTFont
 SCAN_SUFFIXES = ('.ejs', '.yml', '.yaml', '.md', '.js', '.styl', '.css', '.json', '.html')
 USE = re.compile(r'icon-([a-z0-9-]+)')
 
+# 字形描边补偿（字库单位，upm=1024 时 32 ≈ 0.031em）。
+#
+# 为什么加：字体渲染会做 hinting，把细笔画对齐像素网格并略微加重；SVG 路径只是几何
+# 抗锯齿，同一字形在 14–16px 下实测墨量只有字体渲染的 95%，看起来“变细”。加这层描边
+# 把墨量补回 100%（实测 0.998），实心图标与斜笔基本不受影响。
+# 这是排版观感的补偿，不是字形设计的一部分；想看纯字形就把它改成 0 重新生成。
+WEIGHT = 32
+
 # 静态扫描只看得到源码里写死的类名。这两个是运行时拼出来的：
 # source/js/color-schema.js 的 getIconClass(scheme) 返回 'icon-' + scheme，
 # scheme 取值为 dark / light。HTML 里初始只有 icon-dark，暗色模式会换成 icon-light，
@@ -47,9 +55,10 @@ OUTPUT = 'assets/icons.css'
 RULE = re.compile(r'\.icon-([a-z0-9-]+):before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)"')
 
 
-def svg_uri(path_data, view_box):
+def svg_uri(path_data, view_box, stroke=0):
+    attrs = f' stroke="black" stroke-width="{stroke}"' if stroke else ''
     svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="{view_box}">'
-           f'<path d="{path_data}"/></svg>').replace('"', "'")
+           f'<path d="{path_data}"{attrs}/></svg>').replace('"', "'")
     return 'data:image/svg+xml,' + svg.replace('<', '%3C').replace('>', '%3E').replace('#', '%23')
 
 
@@ -124,20 +133,28 @@ def emit(family, css_path, font_path, out, listed, only):
         top_ref = max(ascent, y1)
         bottom_ref = min(descent, y0)
 
+        # 描边会把字形向外扩 WEIGHT/2，viewBox 与盒子范围都要同步放宽，否则边缘被切。
+        pad = WEIGHT / 2
+        gx0, gy0, gx1, gy1 = x0 - pad, y0 - pad, x1 + pad, y1 + pad
+        left_ref = min(left_ref, gx0)
+        right_ref = max(right_ref, gx1)
+        top_ref = max(top_ref, gy1)
+        bottom_ref = min(bottom_ref, gy0)
+
         width_em = (right_ref - left_ref) / upm
         height_em = (top_ref - bottom_ref) / upm
         margin_left = left_ref / upm
         margin_right = advance / upm - width_em - margin_left
-        glyph_w_em = (x1 - x0) / upm
-        glyph_h_em = (y1 - y0) / upm
-        offset_x_em = (x0 - left_ref) / upm
-        offset_y_em = (top_ref - y1) / upm
+        glyph_w_em = (gx1 - gx0) / upm
+        glyph_h_em = (gy1 - gy0) / upm
+        offset_x_em = (gx0 - left_ref) / upm
+        offset_y_em = (top_ref - gy1) / upm
 
-        listed.append((family, name, round(glyph_w_em, 3), round(glyph_h_em, 3),
+        listed.append((family, name, round((x1 - x0) / upm, 3), round((y1 - y0) / upm, 3),
                        round(advance / upm, 3)))
 
-        view_box = f'{x0:.0f} {-y1:.0f} {x1 - x0:.0f} {y1 - y0:.0f}'
-        mask = svg_uri(path_data, view_box)
+        view_box = f'{gx0:.0f} {-gy1:.0f} {gx1 - gx0:.0f} {gy1 - gy0:.0f}'
+        mask = svg_uri(path_data, view_box, WEIGHT)
         # 同一个 data URI 要同时给 -webkit-mask 和 mask：Safari 15.4 以前只认前缀写法。
         # 直接写两遍会让每个图标的样式体积翻倍，所以存进自定义属性再引用。
         # 字形用 mask-size/position 精确定位，不能写 center/contain——那样会被缩放去填满盒子。
