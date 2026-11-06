@@ -90,6 +90,7 @@ def scan_used(roots):
 def emit(family, css_path, font_path, out, listed, only):
     font = TTFont(font_path)
     upm = font['head'].unitsPerEm
+    ascent, descent = font['hhea'].ascent, font['hhea'].descent
     glyph_set = font.getGlyphSet()
     cmap = font.getBestCmap()
     hmtx = font['hmtx']
@@ -113,25 +114,44 @@ def emit(family, css_path, font_path, out, listed, only):
         glyph_set[glyph].draw(TransformPen(pen, Transform(1, 0, 0, -1, 0, 0)))
         path_data = round_path(pen.getCommands())
 
-        width_em = (x1 - x0) / upm
-        height_em = (y1 - y0) / upm
-        margin_left = x0 / upm
-        margin_right = advance / upm - width_em - margin_left
+        # 盒子的垂直尺寸要用**字体自己的内容盒**（ascent..descent），而不是字形包围盒。
+        # 主题里 `i.iconfont{font-size:1em;line-height:1}`：字体版的 <i> 行盒正好 1em，
+        # 若 mask 盒只有字形那么高（约 0.87em），行盒会矮一截，导航这类 flex 居中的
+        # 容器里文字会整体偏 1px。让盒子占满内容盒后，行盒贡献与字体一致。
+        # 字形超出的少数图标把盒子往外扩，保证不裁边（宁可高 0.15px 也不切）。
+        left_ref = min(0, x0)
+        right_ref = max(advance, x1)
+        top_ref = max(ascent, y1)
+        bottom_ref = min(descent, y0)
 
-        listed.append((family, name, round(width_em, 3), round(height_em, 3),
+        width_em = (right_ref - left_ref) / upm
+        height_em = (top_ref - bottom_ref) / upm
+        margin_left = left_ref / upm
+        margin_right = advance / upm - width_em - margin_left
+        glyph_w_em = (x1 - x0) / upm
+        glyph_h_em = (y1 - y0) / upm
+        offset_x_em = (x0 - left_ref) / upm
+        offset_y_em = (top_ref - y1) / upm
+
+        listed.append((family, name, round(glyph_w_em, 3), round(glyph_h_em, 3),
                        round(advance / upm, 3)))
 
         view_box = f'{x0:.0f} {-y1:.0f} {x1 - x0:.0f} {y1 - y0:.0f}'
         mask = svg_uri(path_data, view_box)
         # 同一个 data URI 要同时给 -webkit-mask 和 mask：Safari 15.4 以前只认前缀写法。
         # 直接写两遍会让每个图标的样式体积翻倍，所以存进自定义属性再引用。
+        # 字形用 mask-size/position 精确定位，不能写 center/contain——那样会被缩放去填满盒子。
         out.append(
             f'.icon-{name}:before{{content:"";display:inline-block;'
             f'width:{width_em:.4f}em;height:{height_em:.4f}em;'
             f'margin-left:{margin_left:.4f}em;margin-right:{margin_right:.4f}em;'
-            f'vertical-align:{y0 / upm:.4f}em;background-color:currentColor;'
-            f'--m:url("{mask}") center/contain no-repeat;'
-            f'-webkit-mask:var(--m);mask:var(--m)}}')
+            f'vertical-align:{bottom_ref / upm:.4f}em;background-color:currentColor;'
+            f'--m:url("{mask}");'
+            f'-webkit-mask-image:var(--m);-webkit-mask-size:{glyph_w_em:.4f}em {glyph_h_em:.4f}em;'
+            f'-webkit-mask-position:{offset_x_em:.4f}em {offset_y_em:.4f}em;'
+            f'-webkit-mask-repeat:no-repeat;'
+            f'mask-image:var(--m);mask-size:{glyph_w_em:.4f}em {glyph_h_em:.4f}em;'
+            f'mask-position:{offset_x_em:.4f}em {offset_y_em:.4f}em;mask-repeat:no-repeat}}')
 
 
 def main():
