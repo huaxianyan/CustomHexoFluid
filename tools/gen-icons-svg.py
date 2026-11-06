@@ -48,6 +48,13 @@ WEIGHT = 20
 # scheme 取值为 dark / light。HTML 里初始只有 icon-dark，暗色模式会换成 icon-light，
 # 不登记就在这里漏掉，上线后开关图标在暗色主题下变空白。
 EXTRA_ICONS = {'dark', 'light'}
+
+# 个别字形在内容盒里的视觉重心和同一行的 CJK 方块不一样，需要光学微调。单位 em，正数
+# 是往下移（改的是 mask-position 的 y，盒子尺寸和行盒不受影响，所以两站的对齐关系不变）。
+# clock-fill：实心圆盘配负形指针，墨量和 bbox 中心其实和别的图标一样高，但圆盘看着比方块轻、
+# 显得浮在上面（用户 2026-11-06 反馈）。下移 0.5px（14px 字号 → 0.0357em）后与文字齐平。
+# 加之前先确认盒子上下留白够：clock-fill 盒高 1em、字形 0.8535em，上下各空 1.02px，够用。
+OPTICAL_SHIFT_EM = {'clock-fill': 0.0357}
 FAMILIES = ('iconfont', 'iconfont2')
 OUTPUT = 'assets/icons.css'
 RULE = re.compile(r'\.icon-([a-z0-9-]+):before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)"')
@@ -150,7 +157,7 @@ def emit(family, css_path, font_path, out, listed, only):
         glyph_w_em = (gx1 - gx0) / upm
         glyph_h_em = (gy1 - gy0) / upm
         offset_x_em = (gx0 - left_ref) / upm
-        offset_y_em = (top_ref - gy1) / upm
+        offset_y_em = (top_ref - gy1) / upm + OPTICAL_SHIFT_EM.get(name, 0.0)
 
         listed.append((family, name, round((x1 - x0) / upm, 3), round((y1 - y0) / upm, 3),
                        round(advance / upm, 3)))
