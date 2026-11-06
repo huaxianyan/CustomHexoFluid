@@ -31,7 +31,8 @@ from fontTools.pens.svgPathPen import SVGPathPen
 from fontTools.pens.transformPen import TransformPen
 from fontTools.ttLib import TTFont
 
-SCAN_SUFFIXES = ('.ejs', '.yml', '.yaml', '.md', '.js', '.styl', '.css', '.json', '.html')
+SCAN_SUFFIXES = ('.ejs', '.vue', '.ts', '.tsx', '.js', '.jsx',
+                 '.yml', '.yaml', '.md', '.styl', '.scss', '.css', '.json', '.html')
 USE = re.compile(r'icon-([a-z0-9-]+)')
 
 # 字形描边补偿（字库单位，upm=1024 时 32 ≈ 0.031em）。
@@ -47,10 +48,7 @@ WEIGHT = 20
 # scheme 取值为 dark / light。HTML 里初始只有 icon-dark，暗色模式会换成 icon-light，
 # 不登记就在这里漏掉，上线后开关图标在暗色主题下变空白。
 EXTRA_ICONS = {'dark', 'light'}
-FONTS = {
-    'iconfont': ('assets/iconfont/iconfont.css', 'assets/iconfont/iconfont.woff2'),
-    'iconfont2': ('assets/iconfont2/iconfont2.css', 'assets/iconfont2/iconfont2.woff2'),
-}
+FAMILIES = ('iconfont', 'iconfont2')
 OUTPUT = 'assets/icons.css'
 RULE = re.compile(r'\.icon-([a-z0-9-]+):before\s*\{\s*content:\s*"\\([0-9a-fA-F]+)"')
 
@@ -91,6 +89,10 @@ def scan_used(roots):
                 try:
                     text = io.open(full, encoding='utf-8', errors='ignore').read()
                 except OSError:
+                    continue
+                # 字体规则表自己列着全部图标名，当用量扫进来就永远等于没裁剪。
+                # 判据：文件里出现 .icon-xxx:before{content:"\\…" 这类规则定义。
+                if RULE.search(text):
                     continue
                 used.update(USE.findall(text))
     return used
@@ -177,7 +179,16 @@ def main():
     parser.add_argument('--scan', action='append', default=[],
                         help='扫描 icon-xxx 用量的目录，可重复；默认只扫当前目录')
     parser.add_argument('--all', action='store_true', help='输出全部图标，不看用量')
+    parser.add_argument('--fonts-dir', default='assets',
+                        help='存放 iconfont/ 与 iconfont2/ 的目录，默认 assets')
+    parser.add_argument('--out', default=OUTPUT, help=f'输出路径，默认 {OUTPUT}')
     args = parser.parse_args()
+
+    fonts = {
+        family: (f'{args.fonts_dir}/{family}/{family}.css',
+                 f'{args.fonts_dir}/{family}/{family}.woff2')
+        for family in FAMILIES
+    }
 
     only = None
     if not args.all:
@@ -186,24 +197,25 @@ def main():
             raise SystemExit('没扫到任何 icon-xxx 用量，检查 --scan 目录')
 
     out, listed = [], []
-    for family, (css_path, font_path) in FONTS.items():
+    for family, (css_path, font_path) in fonts.items():
         emit(family, css_path, font_path, out, listed, only)
 
     if only:
         known = {name for _, name, _, _, _ in listed}
         missing = sorted(only - known)
         if missing:
-            print('用量里有、但字库里没有的图标（多半是打错字）:', ' '.join(missing))
+            print('用量里有、但字库没有的名字（多半是别的图标系统或打错字）:', ' '.join(missing))
 
     if args.list:
         for row in listed:
             print('{:10s} {:22s} 宽{:.3f}em 高{:.3f}em advance{:.3f}em'.format(*row))
         return
 
-    header = ('/* 由 tools/gen-icons-svg.py 从 assets/iconfont*/ 生成，不要手改。\n'
-              '   图标用内联 SVG mask 呈现：无字体下载与解码，路径数据可 gzip。 */\n')
-    io.open(OUTPUT, 'w', encoding='utf-8', newline='\n').write(header + '\n'.join(out) + '\n')
-    print(f'生成 {len(out)} 个图标 → {OUTPUT}')
+    header = ('/* 由 CustomHexoFluid 的 tools/gen-icons-svg.py 生成，不要手改。\n'
+              '   图标用内联 SVG mask 呈现：无字体下载与解码，路径数据可 gzip。\n'
+              '   重新生成的方法写在仓库的 AGENTS.md。 */\n')
+    io.open(args.out, 'w', encoding='utf-8', newline='\n').write(header + '\n'.join(out) + '\n')
+    print(f'生成 {len(out)} 个图标 → {args.out}')
 
 
 if __name__ == '__main__':
