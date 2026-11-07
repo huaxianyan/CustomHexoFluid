@@ -2,8 +2,10 @@ name: Sync theme to Hexo
 
 on:
   push:
+    # 只跟 svg-icons 分支：main 是给普通用户的标准版（字体图标），
+    # 从 main 同步会把本站图标刷回字体版。
     branches:
-      - main
+      - svg-icons
   workflow_dispatch:
 
 permissions:
