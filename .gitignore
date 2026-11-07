@@ -8,3 +8,7 @@ Thumbs.db
 node_modules/
 package-lock.json
 *.lock
+
+# Python 字节码缓存（tools/gen-icons-svg.py 运行时产生）
+__pycache__/
+*.pyc
