@@ -10,8 +10,9 @@
 
 ## 分支
 
-- [`main`](https://github.com/huaxianyan/CustomHexoFluid/tree/main)：完整可安装主题，包含 Fluid 上游源码和已经确认的个人修改
-- [`custom`](https://github.com/huaxianyan/CustomHexoFluid/tree/custom)：只保存相对 Fluid 上游新增或修改的文件，便于审查和维护
+- [`main`](https://github.com/huaxianyan/CustomHexoFluid/tree/main)：标准版。完整可安装主题，包含 Fluid 上游源码和已经确认的个人修改。图标走内联字体，Release 从这里发布。
+- [`custom`](https://github.com/huaxianyan/CustomHexoFluid/tree/custom)：只保存相对 Fluid 上游新增或修改的文件，便于审查和维护。
+- `svg-icons`（当前分支）：作者自用版。图标改为内联 SVG mask，并按站点实际用量裁剪图标表；服务本站部署，标准版不随它改动。下面「图标」一节只对这个分支成立。
 
 ## 发布版本
 
