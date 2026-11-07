@@ -70,26 +70,6 @@ lazyload:
 
 `enable` 是总开关。`post`、`banner` 和 `index` 缺失时默认启用；`onlypost` 只限制普通正文图片的处理范围。
 
-## 图标
-
-导航与社交图标是内联的 SVG mask，样式表在 `assets/icons.css`，由 `tools/gen-icons-svg.py`
-从 `assets/iconfont*/` 生成；生成结果参与 gzip，图标与 DOM 同一帧画出，不需要下载字体。
-
-样式表**只收录用到的图标**（主题配置 + 站点源码扫描，约 36 个，48 KB / gzip 14 KB）。
-上游图标库有 117 个，全量打包是 161 KB（gzip 45 KB）并会内联进每个页面，所以默认不打包全集。
-用到表里没有的图标时，运行生成器补上：
-
-```sh
-pip install fonttools
-python tools/gen-icons-svg.py --scan . --scan <你的站点目录>
-```
-
-`--scan` 可以重复，指向所有会写 `icon-xxx` 的地方（主题 `_config.yml`、`layout/`、
-站点的 `source/` 等）。换字库或调描边参数后同样要重跑，不要手改 `assets/icons.css`。
-
-漏掉的图标不会报错，只会渲染成空白；构建结束时会打印一条警告，列出缺失的名字和
-上面这条命令，看到警告就重跑一次生成器。
-
 ## 图片约定
 
 正文图片建议使用站点路径：
